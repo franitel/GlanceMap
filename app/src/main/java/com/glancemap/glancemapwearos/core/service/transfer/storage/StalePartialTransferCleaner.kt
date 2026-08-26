@@ -62,13 +62,13 @@ internal object StalePartialTransferCleaner {
         val roots =
             linkedSetOf<File>().apply {
                 add(context.getDir("gpx", Context.MODE_PRIVATE))
-                add(context.getDir("maps", Context.MODE_PRIVATE))
+                add(context.getExternalFilesDir("maps") ?: context.getDir("maps", Context.MODE_PRIVATE))
                 add(context.getDir("poi", Context.MODE_PRIVATE))
                 add(context.getDir("oam_downloads", Context.MODE_PRIVATE))
                 add(routingSegmentsDir(context))
                 add(
                     context.getExternalFilesDir(DEM_DIR_NAME)
-                        ?: File(context.getDir("maps", Context.MODE_PRIVATE), DEM_DIR_NAME),
+                        ?: File(context.getExternalFilesDir("maps") ?: context.getDir("maps", Context.MODE_PRIVATE), DEM_DIR_NAME),
                 )
             }
 

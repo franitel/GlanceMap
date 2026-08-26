@@ -25,6 +25,15 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
+private val RECORDING_AND_GUIDANCE_REASONS = setOf(
+    NavigationRuntimeDemandReason.RECORDING,
+    NavigationRuntimeDemandReason.RECORDING_AUTO_PAUSED,
+    NavigationRuntimeDemandReason.RECORDING_GUIDANCE,
+    NavigationRuntimeDemandReason.GUIDANCE_AMBIENT,
+    NavigationRuntimeDemandReason.GUIDANCE_BACKGROUND,
+    NavigationRuntimeDemandReason.GUIDANCE_VISIBLE,
+)
+
 internal data class RequestUpdateState(
     val bound: Boolean,
     val tracking: Boolean,
@@ -301,6 +310,12 @@ internal class LocationRequestCoordinator(
         permissions: LocationPermissionSnapshot,
     ): ResolvedRequestPlan {
         val explicitBackgroundTracking = state.tracking && state.screenState.isNonInteractive && state.backgroundGps
+        // When tracking is enabled (Navigate screen) and the screen dims, keep GPS at
+        // the user interval instead of dropping to the 10-minute ambient interval.
+        // Without this, GPS dies when the user looks away from the watch.
+        val navigateScreenBackgroundTracking =
+            explicitBackgroundTracking &&
+                state.runtimeReason !in RECORDING_AND_GUIDANCE_REASONS
         val activeBackgroundTracking =
             explicitBackgroundTracking &&
                 (
@@ -323,7 +338,7 @@ internal class LocationRequestCoordinator(
                 watchOnly = state.watchOnlyEffective,
                 hasFinePermission = permissions.hasFinePermission,
                 passiveLocationExperiment = state.passiveLocationExperiment && !explicitBackgroundTracking,
-                activeBackgroundTracking = activeBackgroundTracking,
+                activeBackgroundTracking = activeBackgroundTracking || navigateScreenBackgroundTracking,
                 userIntervalMs = state.userIntervalMs,
                 ambientIntervalMs =
                     if (explicitBackgroundTracking) {

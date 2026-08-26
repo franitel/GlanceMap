@@ -1425,8 +1425,10 @@ class LocationService : Service() {
                     KeepAliveNotificationMode.LOCATION_FOREGROUND
                 guidanceActive && shouldUseLocationForegroundMode() ->
                     KeepAliveNotificationMode.LOCATION_FOREGROUND
-                !keepAppOpen.value -> KeepAliveNotificationMode.OFF
+                // When tracking is active (Navigate screen), keep as foreground service
+                // even if keepAppOpen is false — without this, GPS dies when screen dims.
                 shouldUseLocationForegroundMode() -> KeepAliveNotificationMode.LOCATION_FOREGROUND
+                !keepAppOpen.value -> KeepAliveNotificationMode.OFF
                 else -> KeepAliveNotificationMode.PINNED_NOTIFICATION
             }
         if (
@@ -1619,7 +1621,7 @@ class LocationService : Service() {
 
     private fun shouldUseLocationForegroundMode(): Boolean {
         val locationAllowedByUiState =
-            latestTrackingEnabled &&
+            (latestTrackingEnabled || effectiveBackgroundGpsEnabled()) &&
                 (latestScreenState.isInteractive || effectiveBackgroundGpsEnabled())
         return locationAllowedByUiState
     }
@@ -1627,10 +1629,16 @@ class LocationService : Service() {
     private fun isNonInteractiveScreenState(): Boolean = latestScreenState.isNonInteractive
 
     private fun effectiveBackgroundGpsEnabled(): Boolean {
-        // During an active recording, ALWAYS keep background GPS enabled regardless
-        // of what the caller sends. Compose may send backgroundGpsEnabled=false during
-        // the screen-off transition because it hasn't recomposed yet — this causes a
-        // race condition where GPS is removed for minutes at a time.
+        // When tracking is enabled (Navigate screen visible), ALWAYS keep background GPS
+        // enabled so GPS doesn't drop to 10-minute interval when the screen dims.
+        // Without this, the user has to open Samsung Health just to get a GPS fix.
+        if (latestTrackingEnabled) return true
+        // When GPS was recently applied (request active within last 30s), treat as
+        // background GPS enabled to prevent brief drops to ambient interval.
+        val gpsRecentlyActive =
+            lastRequestAppliedAtElapsedMs > 0L &&
+                SystemClock.elapsedRealtime() - lastRequestAppliedAtElapsedMs < 30_000L
+        if (gpsRecentlyActive) return true
         val forceBackgroundGps = isRecordingRuntimeReason(latestRuntimeReason)
         return forceBackgroundGps || latestAmbientGps || latestRuntimeBackgroundGps
     }

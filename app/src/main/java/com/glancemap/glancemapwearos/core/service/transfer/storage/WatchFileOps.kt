@@ -79,7 +79,8 @@ internal class WatchFileOps(
                 fileName.endsWith(".gpx", ignoreCase = true) -> container.gpxRepository.deleteGpxFile(fileName)
                 fileName.endsWith(".map", ignoreCase = true) -> {
                     val safeName = sanitizeFileName(fileName)
-                    val mapPath = File(app.getDir("maps", Context.MODE_PRIVATE), safeName).absolutePath
+                    val mapDir = app.getExternalFilesDir("maps") ?: app.getDir("maps", Context.MODE_PRIVATE)
+                    val mapPath = File(mapDir, safeName).absolutePath
                     cleanupDemForMapPath(mapPath)
                     container.mapRepository.deleteMapFile(mapPath)
                 }
@@ -363,7 +364,7 @@ internal class WatchFileOps(
                 container.gpxRepository.deleteGpxFile(File(dir, safeName).absolutePath)
             }
             safeName.endsWith(".map", ignoreCase = true) -> {
-                val dir = app.getDir("maps", Context.MODE_PRIVATE)
+                val dir = app.getExternalFilesDir("maps") ?: app.getDir("maps", Context.MODE_PRIVATE)
                 val mapPath = File(dir, safeName).absolutePath
                 cleanupDemForMapPath(mapPath)
                 container.mapRepository.deleteMapFile(mapPath)
@@ -433,7 +434,7 @@ internal class WatchFileOps(
     private fun targetFileForName(fileName: String): File? =
         when {
             fileName.endsWith(".gpx", ignoreCase = true) -> File(app.getDir("gpx", Context.MODE_PRIVATE), fileName)
-            fileName.endsWith(".map", ignoreCase = true) -> File(app.getDir("maps", Context.MODE_PRIVATE), fileName)
+            fileName.endsWith(".map", ignoreCase = true) -> File(app.getExternalFilesDir("maps") ?: app.getDir("maps", Context.MODE_PRIVATE), fileName)
             fileName.endsWith(".poi", ignoreCase = true) -> File(app.getDir("poi", Context.MODE_PRIVATE), fileName)
             isRoutingSegmentFileName(fileName) -> routingSegmentTargetFile(app.applicationContext, fileName)
             isDemFileName(fileName) -> demTargetFileForName(fileName)
@@ -447,7 +448,7 @@ internal class WatchFileOps(
                 File(dir, ".$fileName.part")
             }
             fileName.endsWith(".map", ignoreCase = true) -> {
-                val dir = app.getDir("maps", Context.MODE_PRIVATE)
+                val dir = app.getExternalFilesDir("maps") ?: app.getDir("maps", Context.MODE_PRIVATE)
                 File(dir, ".$fileName.part")
             }
             fileName.endsWith(".poi", ignoreCase = true) -> {

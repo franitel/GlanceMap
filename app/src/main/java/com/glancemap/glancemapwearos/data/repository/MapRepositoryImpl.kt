@@ -10,7 +10,10 @@ import java.io.InputStream
 class MapRepositoryImpl(
     private val context: Context,
 ) {
-    private val mapDir by lazy { context.getDir("maps", Context.MODE_PRIVATE) }
+    private val mapDir by lazy {
+        context.getExternalFilesDir("maps")
+            ?: context.getDir("maps", Context.MODE_PRIVATE)
+    }
 
     suspend fun listMapFiles(): List<File> =
         withContext(Dispatchers.IO) {
