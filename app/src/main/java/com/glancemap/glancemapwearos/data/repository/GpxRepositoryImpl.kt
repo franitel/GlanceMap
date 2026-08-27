@@ -14,7 +14,10 @@ import java.io.InputStream
 class GpxRepositoryImpl(
     private val context: Context,
 ) {
-    private val gpxDir by lazy { context.getDir("gpx", Context.MODE_PRIVATE) }
+    private val gpxDir by lazy {
+        context.getExternalFilesDir("gpx")
+            ?: context.getDir("gpx", Context.MODE_PRIVATE)
+    }
 
     private val prefs: SharedPreferences by lazy {
         context.getSharedPreferences("gpx_metadata", Context.MODE_PRIVATE)

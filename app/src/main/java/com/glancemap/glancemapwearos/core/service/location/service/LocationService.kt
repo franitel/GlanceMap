@@ -312,6 +312,7 @@ class LocationService : Service() {
                     _currentLocation.value = location
                     lastAnyAcceptedFixAtElapsedMs = acceptedAtMs
                     lastCallbackAcceptedFixAtElapsedMs = acceptedAtMs
+                    publishAcceptedLocation(location)
                 },
                 maybeTriggerAutoFusedFailover = { acceptedLocation, callbackOrigin, nowElapsedMs ->
                     selfHealFailoverCoordinator.maybeTriggerAutoFusedFailover(
