@@ -57,6 +57,7 @@ import com.glancemap.glancemapwearos.presentation.features.settings.GpsSettingsS
 import com.glancemap.glancemapwearos.presentation.features.settings.GpxAppearanceSettingsScreen
 import com.glancemap.glancemapwearos.presentation.features.settings.GpxSettingsScreen
 import com.glancemap.glancemapwearos.presentation.features.settings.GpxToolsSettingsScreen
+import com.glancemap.glancemapwearos.presentation.features.ble.BluetoothTransferScreen
 import com.glancemap.glancemapwearos.presentation.features.settings.LicensesScreen
 import com.glancemap.glancemapwearos.presentation.features.settings.MapDisplaySettingsScreen
 import com.glancemap.glancemapwearos.presentation.features.settings.MapSettingsScreen
@@ -1039,6 +1040,23 @@ class MainActivity : ComponentActivity() {
                                 onSwipeLeftNavigate = navigateViaSwipeLeft,
                             ) {
                                 LicensesScreen(
+                                    onOpenGeneralSettings = {
+                                        navController.navigate(WatchRoutes.SETTINGS) {
+                                            popUpTo(WatchRoutes.SETTINGS) { inclusive = false }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                )
+                            }
+                        }
+
+                        composable(WatchRoutes.BLUETOOTH_TRANSFER) {
+                            DismissableScreen(
+                                onDismiss = { navController.popBackStack() },
+                                onSwipeLeftNavigate = navigateViaSwipeLeft,
+                            ) {
+                                BluetoothTransferScreen(
                                     onOpenGeneralSettings = {
                                         navController.navigate(WatchRoutes.SETTINGS) {
                                             popUpTo(WatchRoutes.SETTINGS) { inclusive = false }

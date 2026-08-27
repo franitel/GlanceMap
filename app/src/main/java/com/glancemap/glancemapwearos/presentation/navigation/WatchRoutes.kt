@@ -37,4 +37,5 @@ object WatchRoutes {
     const val THEME_SETTINGS = "theme_settings_screen"
     const val RESET_DEFAULTS_CONFIRM = "reset_defaults_confirm_screen"
     const val LICENSES = "licenses_screen"
+    const val BLUETOOTH_TRANSFER = "bluetooth_transfer_screen"
 }

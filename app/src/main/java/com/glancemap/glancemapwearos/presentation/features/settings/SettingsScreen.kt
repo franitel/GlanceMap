@@ -145,6 +145,13 @@ fun SettingsScreen(
                 onClick = { navController.navigate(WatchRoutes.DOWNLOAD_SETTINGS) },
             )
         }
+        item {
+            SettingsPickerChip(
+                label = "Bluetooth Transfer",
+                secondaryLabel = "GPX sync without Google",
+                onClick = { navController.navigate(WatchRoutes.BLUETOOTH_TRANSFER) },
+            )
+        }
 
         item {
             SettingsPickerChip(
