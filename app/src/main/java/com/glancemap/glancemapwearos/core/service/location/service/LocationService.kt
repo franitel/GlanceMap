@@ -169,6 +169,10 @@ class LocationService : Service() {
     @Volatile private var latestRecordingScreenOffIntervalMs: Long =
         SettingsRepository.DEFAULT_RECORDING_SCREEN_OFF_SAMPLE_INTERVAL_SECONDS * 1_000L
 
+    @Volatile private var latestDynamicGpsEnabled: Boolean = true
+
+    private val dynamicGpsCalculator = DynamicGpsIntervalCalculator()
+
     @Volatile private var latestTurnByTurnIntervalMs: Long =
         SettingsRepository.DEFAULT_TURN_BY_TURN_GPS_INTERVAL_SECONDS * 1_000L
 
@@ -492,6 +496,9 @@ class LocationService : Service() {
                     recordingIntervalMillis(settingsRepository.recordingSampleIntervalSeconds.first())
             }
             runCatching {
+                latestDynamicGpsEnabled = settingsRepository.dynamicGpsInterval.first()
+            }
+            runCatching {
                 latestRecordingScreenOffIntervalMs =
                     screenOffIntervalMillis(
                         screenOnIntervalMs = latestRecordingIntervalMs,
@@ -810,8 +817,8 @@ class LocationService : Service() {
         }
 
     private fun recordingIntervalForScreen(): Long =
-        if (latestScreenState.isNonInteractive) {
-            latestRecordingScreenOffIntervalMs
+        if (latestDynamicGpsEnabled) {
+            dynamicGpsCalculator.getCurrentIntervalMs()
         } else {
             latestRecordingIntervalMs
         }
@@ -1062,6 +1069,8 @@ class LocationService : Service() {
                 state.copy(turnByTurnScreenOffBatchingEnabled = enabled)
             }.combine(settingsRepository.gpsPassiveLocationExperiment) { state, passiveLocationExperiment ->
                 state.copy(passiveLocationExperiment = passiveLocationExperiment)
+            }.combine(settingsRepository.dynamicGpsInterval) { state, dynamicGpsEnabled ->
+                state.copy(dynamicGpsEnabled = dynamicGpsEnabled)
             }.collectLatest { state ->
                 onGpsSettingsStateChanged(state)
             }
@@ -1091,6 +1100,7 @@ class LocationService : Service() {
         latestAmbientIntervalMs = state.ambientIntervalMs
         latestAmbientGps = state.ambientGps
         latestPassiveLocationExperiment = state.passiveLocationExperiment
+        latestDynamicGpsEnabled = state.dynamicGpsEnabled
         applyDiagnosticsCaptureState(
             captureActive = captureActiveNow,
             captureMode = state.diagnosticsCaptureMode,
@@ -1531,6 +1541,9 @@ class LocationService : Service() {
 
     private fun publishAcceptedLocation(location: Location) {
         _currentLocation.value = location
+        if (latestDynamicGpsEnabled && isRecordingRuntimeReason(latestRuntimeReason)) {
+            dynamicGpsCalculator.onNewLocation(location, SystemClock.elapsedRealtime())
+        }
         if (!_acceptedLocationEvents.tryEmit(location)) {
             DebugTelemetry.log(
                 TELEMETRY_TAG,

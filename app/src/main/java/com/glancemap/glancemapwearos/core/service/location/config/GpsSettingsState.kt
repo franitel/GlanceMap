@@ -14,4 +14,5 @@ internal data class GpsSettingsState(
     val debugTelemetry: Boolean,
     val diagnosticsCaptureMode: String,
     val passiveLocationExperiment: Boolean,
+    val dynamicGpsEnabled: Boolean = true,
 )

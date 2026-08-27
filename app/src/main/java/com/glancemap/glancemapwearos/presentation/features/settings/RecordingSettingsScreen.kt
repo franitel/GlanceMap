@@ -24,6 +24,7 @@ fun RecordingSettingsScreen(
     val startWithTurnByTurn by viewModel.recordingStartWithTurnByTurn.collectAsState()
     val autoPauseMode by viewModel.recordingAutoPauseMode.collectAsState()
     val autoPauseEnabled = autoPauseMode == SettingsRepository.RECORDING_AUTO_PAUSE_ALWAYS
+    val dynamicGpsInterval by viewModel.dynamicGpsInterval.collectAsState()
     var showInfoDialog by remember { mutableStateOf(false) }
 
     WearSettingsListScreen(listTokens = listTokens, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -69,6 +70,14 @@ fun RecordingSettingsScreen(
                 onCheckedChanged = viewModel::setRecordingShowSavedGpxOnMap,
                 label = "Show saved activity",
                 secondaryLabel = if (showSavedGpxOnMap) "On map after save" else "Saved but hidden",
+            )
+        }
+        item {
+            SettingsToggleChip(
+                checked = dynamicGpsInterval,
+                onCheckedChanged = viewModel::setDynamicGpsInterval,
+                label = "Dynamic GPS interval",
+                secondaryLabel = if (dynamicGpsInterval) "Adjusts GPS rate by speed" else "Fixed GPS rate",
             )
         }
         item {

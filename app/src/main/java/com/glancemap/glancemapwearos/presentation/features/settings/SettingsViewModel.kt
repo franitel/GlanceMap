@@ -111,6 +111,19 @@ class SettingsViewModel(
             settingsRepository.setRecordingSampleIntervalSeconds(seconds)
         }
 
+    val dynamicGpsInterval: StateFlow<Boolean> =
+        settingsRepository.dynamicGpsInterval
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                true,
+            )
+
+    fun setDynamicGpsInterval(enabled: Boolean) =
+        viewModelScope.launch {
+            settingsRepository.setDynamicGpsInterval(enabled)
+        }
+
     val recordingScreenOnFixedGpsIntervalSeconds: StateFlow<Int> =
         settingsRepository.recordingScreenOnFixedGpsIntervalSeconds
             .stateIn(

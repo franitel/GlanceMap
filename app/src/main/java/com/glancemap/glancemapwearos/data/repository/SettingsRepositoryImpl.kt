@@ -83,6 +83,7 @@ class SettingsRepositoryImpl private constructor(
         val GPS_DEBUG_TELEMETRY_POPUP_ENABLED = booleanPreferencesKey("gps_debug_telemetry_popup_enabled")
         val GPS_USAGE_PROFILE = stringPreferencesKey("gps_usage_profile")
         val RECORDING_SAMPLE_INTERVAL_SECONDS = intPreferencesKey("recording_sample_interval_seconds")
+        val DYNAMIC_GPS_INTERVAL = booleanPreferencesKey("dynamic_gps_interval")
         val RECORDING_SCREEN_ON_FIXED_GPS_INTERVAL_SECONDS =
             intPreferencesKey("recording_screen_on_fixed_gps_interval_seconds")
         val RECORDING_SCREEN_OFF_SAMPLE_INTERVAL_SECONDS =
@@ -369,6 +370,17 @@ class SettingsRepositoryImpl private constructor(
             it[PrefKeys.RECORDING_SAMPLE_INTERVAL_SECONDS] = sanitized
             it[PrefKeys.RECORDING_SCREEN_ON_FIXED_GPS_INTERVAL_SECONDS] =
                 if (sanitized > 0) sanitized else rememberedFixedSeconds
+        }
+    }
+
+    override val dynamicGpsInterval: Flow<Boolean> =
+        context.dataStore.data.map {
+            it[PrefKeys.DYNAMIC_GPS_INTERVAL] ?: true
+        }
+
+    override suspend fun setDynamicGpsInterval(enabled: Boolean) {
+        context.dataStore.edit {
+            it[PrefKeys.DYNAMIC_GPS_INTERVAL] = enabled
         }
     }
 

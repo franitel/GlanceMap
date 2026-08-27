@@ -331,6 +331,10 @@ interface SettingsRepository {
 
     suspend fun setRecordingSampleIntervalSeconds(seconds: Int)
 
+    val dynamicGpsInterval: Flow<Boolean>
+
+    suspend fun setDynamicGpsInterval(enabled: Boolean)
+
     /** The last fixed REC screen-on cadence, retained while GPS is off. */
     val recordingScreenOnFixedGpsIntervalSeconds: Flow<Int>
 
