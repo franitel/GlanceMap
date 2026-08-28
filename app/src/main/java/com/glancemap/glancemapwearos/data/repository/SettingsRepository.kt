@@ -11,6 +11,17 @@ data class RecordingProgressVibrationSettings(
     val timeMinutes: Int = SettingsRepository.DEFAULT_RECORDING_PROGRESS_VIBRATION_TIME_MINUTES,
 )
 
+/**
+ * Heart-rate alert thresholds. When the current HR crosses the high threshold (3 pulses) or
+ * drops below the low threshold (2 pulses) during a recording, the watch buzzes.
+ */
+data class HeartRateAlertSettings(
+    val highEnabled: Boolean = SettingsRepository.DEFAULT_HEART_RATE_ALERT_HIGH_ENABLED,
+    val highBpm: Int = SettingsRepository.DEFAULT_HEART_RATE_ALERT_HIGH_BPM,
+    val lowEnabled: Boolean = SettingsRepository.DEFAULT_HEART_RATE_ALERT_LOW_ENABLED,
+    val lowBpm: Int = SettingsRepository.DEFAULT_HEART_RATE_ALERT_LOW_BPM,
+)
+
 interface SettingsRepository {
     companion object {
         const val TIME_FORMAT_24_HOUR = "24_HOUR"
@@ -100,6 +111,14 @@ interface SettingsRepository {
         const val DEFAULT_RECORDING_STEPS_SOURCE = RECORDING_SENSOR_SOURCE_WATCH_GPS
         const val DEFAULT_RECORDING_SHOW_SAVED_GPX_ON_MAP = true
         const val DEFAULT_RECORDING_START_WITH_TURN_BY_TURN = false
+
+        // Heart-rate alert thresholds (beep on HR alert while recording).
+        const val DEFAULT_HEART_RATE_ALERT_HIGH_ENABLED = true
+        const val DEFAULT_HEART_RATE_ALERT_HIGH_BPM = 160
+        const val DEFAULT_HEART_RATE_ALERT_LOW_ENABLED = true
+        const val DEFAULT_HEART_RATE_ALERT_LOW_BPM = 60
+        const val MIN_HEART_RATE_ALERT_BPM = 40
+        const val MAX_HEART_RATE_ALERT_BPM = 220
         const val ACTIVITY_PROFILE_HIKE = "HIKE"
         const val ACTIVITY_PROFILE_WALK_HIKE = "WALK_HIKE"
         const val ACTIVITY_PROFILE_BIKE = "BIKE"
@@ -183,7 +202,7 @@ interface SettingsRepository {
         const val TURN_BY_TURN_TURN_ALERTS_IMPORTANT = "IMPORTANT"
         const val TURN_BY_TURN_TURN_ALERTS_ALL = "ALL"
         const val DEFAULT_TURN_BY_TURN_TURN_ALERTS_MODE = TURN_BY_TURN_TURN_ALERTS_ALL
-        const val DEFAULT_TURN_BY_TURN_VOICE_GUIDANCE_ENABLED = false
+        const val DEFAULT_TURN_BY_TURN_VOICE_GUIDANCE_ENABLED = true
         const val DEFAULT_TURN_BY_TURN_COMPACT_POPUP_ENABLED = true
         const val DEFAULT_TURN_BY_TURN_OFF_ROUTE_ALERT_THRESHOLD_METERS = 40
         const val DEFAULT_TURN_BY_TURN_OFF_ROUTE_REPEAT_SECONDS = 60
@@ -362,6 +381,16 @@ interface SettingsRepository {
     suspend fun setRecordingProgressVibrationTimeEnabled(enabled: Boolean)
 
     suspend fun setRecordingProgressVibrationTimeMinutes(timeMinutes: Int)
+
+    val heartRateAlertSettings: Flow<HeartRateAlertSettings>
+
+    suspend fun setHeartRateAlertHighEnabled(enabled: Boolean)
+
+    suspend fun setHeartRateAlertHighBpm(highBpm: Int)
+
+    suspend fun setHeartRateAlertLowEnabled(enabled: Boolean)
+
+    suspend fun setHeartRateAlertLowBpm(lowBpm: Int)
 
     val recordingElevationSource: Flow<String>
 

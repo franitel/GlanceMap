@@ -113,6 +113,10 @@ class SettingsRepositoryImpl private constructor(
             intPreferencesKey("recording_progress_vibration_time_minutes_hike")
         val RECORDING_PROGRESS_VIBRATION_TIME_MINUTES_BIKE =
             intPreferencesKey("recording_progress_vibration_time_minutes_bike")
+        val HEART_RATE_ALERT_HIGH_ENABLED = booleanPreferencesKey("heart_rate_alert_high_enabled")
+        val HEART_RATE_ALERT_HIGH_BPM = intPreferencesKey("heart_rate_alert_high_bpm")
+        val HEART_RATE_ALERT_LOW_ENABLED = booleanPreferencesKey("heart_rate_alert_low_enabled")
+        val HEART_RATE_ALERT_LOW_BPM = intPreferencesKey("heart_rate_alert_low_bpm")
         val RECORDING_ELEVATION_SOURCE = stringPreferencesKey("recording_elevation_source")
         val RECORDING_HEART_RATE_SOURCE = stringPreferencesKey("recording_heart_rate_source")
         val RECORDING_CADENCE_SOURCE = stringPreferencesKey("recording_cadence_source")
@@ -512,6 +516,48 @@ class SettingsRepositoryImpl private constructor(
             it.materializeRecordingProgressVibrationSettings(profile)
             it[recordingProgressVibrationTimeMinutesKeyFor(profile)] =
                 sanitizeRecordingProgressVibrationTimeMinutes(timeMinutes)
+        }
+    }
+
+    override val heartRateAlertSettings: Flow<HeartRateAlertSettings> =
+        context.dataStore.data.map {
+            HeartRateAlertSettings(
+                highEnabled =
+                    it[PrefKeys.HEART_RATE_ALERT_HIGH_ENABLED]
+                        ?: SettingsRepository.DEFAULT_HEART_RATE_ALERT_HIGH_ENABLED,
+                highBpm =
+                    it[PrefKeys.HEART_RATE_ALERT_HIGH_BPM]
+                        ?.let { bpm -> nearestHeartRateAlertBpm(bpm, heartRateAlertHighBpmOptions) }
+                        ?: SettingsRepository.DEFAULT_HEART_RATE_ALERT_HIGH_BPM,
+                lowEnabled =
+                    it[PrefKeys.HEART_RATE_ALERT_LOW_ENABLED]
+                        ?: SettingsRepository.DEFAULT_HEART_RATE_ALERT_LOW_ENABLED,
+                lowBpm =
+                    it[PrefKeys.HEART_RATE_ALERT_LOW_BPM]
+                        ?.let { bpm -> nearestHeartRateAlertBpm(bpm, heartRateAlertLowBpmOptions) }
+                        ?: SettingsRepository.DEFAULT_HEART_RATE_ALERT_LOW_BPM,
+            )
+        }
+
+    override suspend fun setHeartRateAlertHighEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PrefKeys.HEART_RATE_ALERT_HIGH_ENABLED] = enabled }
+    }
+
+    override suspend fun setHeartRateAlertHighBpm(highBpm: Int) {
+        context.dataStore.edit {
+            it[PrefKeys.HEART_RATE_ALERT_HIGH_BPM] =
+                nearestHeartRateAlertBpm(highBpm, heartRateAlertHighBpmOptions)
+        }
+    }
+
+    override suspend fun setHeartRateAlertLowEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PrefKeys.HEART_RATE_ALERT_LOW_ENABLED] = enabled }
+    }
+
+    override suspend fun setHeartRateAlertLowBpm(lowBpm: Int) {
+        context.dataStore.edit {
+            it[PrefKeys.HEART_RATE_ALERT_LOW_BPM] =
+                nearestHeartRateAlertBpm(lowBpm, heartRateAlertLowBpmOptions)
         }
     }
 
@@ -1079,7 +1125,7 @@ class SettingsRepositoryImpl private constructor(
         context.dataStore.data.map {
             it[PrefKeys.TURN_BY_TURN_ROUTE_START_BEHAVIOR]
                 .takeIf { behavior -> behavior in allowedTurnByTurnRouteStartBehaviors }
-                ?: SettingsRepository.TURN_BY_TURN_ROUTE_START_GO_TO_START
+                ?: SettingsRepository.TURN_BY_TURN_ROUTE_START_NEAREST_POINT
         }
 
     override suspend fun setTurnByTurnRouteStartBehavior(behavior: String) {

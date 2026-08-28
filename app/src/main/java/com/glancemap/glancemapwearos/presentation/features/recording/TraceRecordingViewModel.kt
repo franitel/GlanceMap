@@ -13,6 +13,7 @@ import com.glancemap.glancemapwearos.core.service.location.model.effectiveAccura
 import com.glancemap.glancemapwearos.core.service.location.policy.LocationFixPolicy
 import com.glancemap.glancemapwearos.core.service.location.policy.LocationSourceMode
 import com.glancemap.glancemapwearos.data.repository.GpxRepositoryImpl
+import com.glancemap.glancemapwearos.data.repository.HeartRateAlertSettings
 import com.glancemap.glancemapwearos.data.repository.RecordingProgressVibrationSettings
 import com.glancemap.glancemapwearos.data.repository.SettingsRepository
 import com.glancemap.glancemapwearos.presentation.SyncManager
@@ -162,6 +163,8 @@ class TraceRecordingViewModel(
     private val recordingPointCaptureExpectation = RecordingPointCaptureExpectation()
     private val recordingProgressVibrationTracker = RecordingProgressVibrationTracker()
     private var recordingProgressVibrationTimeJob: Job? = null
+    private val heartRateAlertTracker = HeartRateAlertTracker()
+    private var heartRateAlertSettings = HeartRateAlertSettings()
     private val draftPersistMutex = Mutex()
     private var pendingDraftPersistJob: Job? = null
     private var lastDraftPersistElapsedMs = Long.MIN_VALUE
@@ -193,6 +196,9 @@ class TraceRecordingViewModel(
                 rebaseRecordingProgressVibration(_uiState.value, System.currentTimeMillis())
                 syncRecordingProgressVibrationTimer()
             }.launchIn(viewModelScope)
+        settingsRepository.heartRateAlertSettings
+            .onEach { heartRateAlertSettings = it }
+            .launchIn(viewModelScope)
         settingsRepository.recordingElevationSource
             .onEach { recordingElevationSource = it }
             .launchIn(viewModelScope)
@@ -467,6 +473,7 @@ class TraceRecordingViewModel(
             )
         recordingProgressVibrationTracker.start(recordingProgressVibrationSettings)
         syncRecordingProgressVibrationTimer()
+        heartRateAlertTracker.start(heartRateAlertSettings)
         DebugTelemetry.log(
             "TraceRecording",
             "event=start sampleIntervalSeconds=$sampleIntervalSeconds elevationSource=$recordingElevationSource " +
@@ -1137,6 +1144,7 @@ class TraceRecordingViewModel(
                 state = nextState,
                 nowMillis = System.currentTimeMillis(),
             )
+            maybeTriggerHeartRateAlert(metrics.heartRateBpm)
         }
     }
 
@@ -1196,16 +1204,40 @@ class TraceRecordingViewModel(
             )
         if (triggers.isEmpty()) return
         val vibrated = vibrateRecordingProgress(applicationContext)
+        val spokenText = recordingProgressSpokenText(triggers, recordingProgressVibrationSettings)
+        val voiced = applicationContext?.let { RecordingGuidanceVoice.speak(it, spokenText) } ?: false
         DebugTelemetry.log(
             "TraceRecording",
             "event=progress_vibration type=${triggers.joinToString("+") { it.javaClass.simpleName.lowercase() }} " +
                 "milestone=${triggers.joinToString("+") { it.milestone.toString() }} " +
+                "spoken=${sanitizeTelemetryValue(spokenText)} voiced=$voiced " +
                 "distanceEnabled=${recordingProgressVibrationSettings.distanceEnabled} " +
                 "distanceIntervalMeters=${recordingProgressVibrationSettings.distanceMeters} " +
                 "timeEnabled=${recordingProgressVibrationSettings.timeEnabled} " +
                 "timeIntervalMinutes=${recordingProgressVibrationSettings.timeMinutes} " +
                 "distanceMeters=${recordingDisplayDistanceMeters(state).toInt()} " +
                 "activeDurationMs=${recordingActiveDurationMillis(state, nowMillis)} " +
+                "vibratorAvailable=$vibrated",
+        )
+    }
+
+    private fun maybeTriggerHeartRateAlert(heartRateBpm: Int?) {
+        val state = _uiState.value
+        if (!state.active || state.paused || state.saving) return
+        val kind = heartRateAlertTracker.onHeartRate(heartRateBpm) ?: return
+        val vibrated = vibrateHeartRateAlert(applicationContext, kind)
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                beepHeartRateAlert(kind)
+            } catch (e: Exception) {
+                DebugTelemetry.log("TraceRecording", "event=heart_rate_alert_beep_error ${e.javaClass.simpleName}")
+            }
+        }
+        DebugTelemetry.log(
+            "TraceRecording",
+            "event=heart_rate_alert kind=${kind.name.lowercase()} heartRateBpm=$heartRateBpm " +
+                "highEnabled=${heartRateAlertSettings.highEnabled} highBpm=${heartRateAlertSettings.highBpm} " +
+                "lowEnabled=${heartRateAlertSettings.lowEnabled} lowBpm=${heartRateAlertSettings.lowBpm} " +
                 "vibratorAvailable=$vibrated",
         )
     }
@@ -2447,6 +2479,11 @@ class TraceRecordingViewModel(
     private fun recordingActivityProfile(): String = _uiState.value.activityProfile
 
     private fun effectiveSampleIntervalSeconds(): Int = sampleIntervalSeconds.takeIf { it > 0 } ?: SettingsRepository.DEFAULT_RECORDING_SAMPLE_INTERVAL_SECONDS
+
+    override fun onCleared() {
+        RecordingGuidanceVoice.shutdown()
+        super.onCleared()
+    }
 }
 
 private fun RecordingDashboardSnapshot.toRecordedTraceSummary(

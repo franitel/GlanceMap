@@ -2,6 +2,7 @@ package com.glancemap.glancemapwearos.presentation.features.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.glancemap.glancemapwearos.data.repository.HeartRateAlertSettings
 import com.glancemap.glancemapwearos.data.repository.RecordingProgressVibrationSettings
 import com.glancemap.glancemapwearos.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -205,6 +206,34 @@ class SettingsViewModel(
     fun setRecordingProgressVibrationTimeMinutes(timeMinutes: Int) =
         viewModelScope.launch {
             settingsRepository.setRecordingProgressVibrationTimeMinutes(timeMinutes)
+        }
+
+    val heartRateAlertSettings: StateFlow<HeartRateAlertSettings> =
+        settingsRepository.heartRateAlertSettings
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                HeartRateAlertSettings(),
+            )
+
+    fun setHeartRateAlertHighEnabled(enabled: Boolean) =
+        viewModelScope.launch {
+            settingsRepository.setHeartRateAlertHighEnabled(enabled)
+        }
+
+    fun setHeartRateAlertHighBpm(highBpm: Int) =
+        viewModelScope.launch {
+            settingsRepository.setHeartRateAlertHighBpm(highBpm)
+        }
+
+    fun setHeartRateAlertLowEnabled(enabled: Boolean) =
+        viewModelScope.launch {
+            settingsRepository.setHeartRateAlertLowEnabled(enabled)
+        }
+
+    fun setHeartRateAlertLowBpm(lowBpm: Int) =
+        viewModelScope.launch {
+            settingsRepository.setHeartRateAlertLowBpm(lowBpm)
         }
 
     val recordingElevationSource: StateFlow<String> =

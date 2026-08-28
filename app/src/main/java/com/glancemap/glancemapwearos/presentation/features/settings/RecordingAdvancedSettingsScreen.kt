@@ -20,6 +20,8 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Slider
 import androidx.wear.compose.material3.Text
 import com.glancemap.glancemapwearos.data.repository.SettingsRepository
+import com.glancemap.glancemapwearos.data.repository.heartRateAlertHighBpmOptions
+import com.glancemap.glancemapwearos.data.repository.heartRateAlertLowBpmOptions
 import com.glancemap.glancemapwearos.data.repository.recordingProgressVibrationDistanceMetersOptions
 import com.glancemap.glancemapwearos.data.repository.recordingProgressVibrationTimeMinutesOptions
 import kotlin.math.roundToInt
@@ -31,6 +33,7 @@ fun RecordingAdvancedSettingsScreen(
 ) {
     val trackSmoothingMode by viewModel.recordingTrackSmoothingMode.collectAsState()
     val progressVibrationSettings by viewModel.recordingProgressVibrationSettings.collectAsState()
+    val heartRateAlertSettings by viewModel.heartRateAlertSettings.collectAsState()
 
     WearSettingsListScreen(horizontalAlignment = Alignment.CenterHorizontally) {
         item {
@@ -84,6 +87,54 @@ fun RecordingAdvancedSettingsScreen(
                 ProgressVibrationTimeSlider(
                     timeMinutes = progressVibrationSettings.timeMinutes,
                     onTimeMinutesChanged = viewModel::setRecordingProgressVibrationTimeMinutes,
+                )
+            }
+        }
+        item {
+            SettingsToggleChip(
+                checked = heartRateAlertSettings.highEnabled,
+                onCheckedChanged = viewModel::setHeartRateAlertHighEnabled,
+                label = "HR high alert",
+                secondaryLabel =
+                    if (heartRateAlertSettings.highEnabled) {
+                        "Beep over ${heartRateAlertSettings.highBpm} bpm"
+                    } else {
+                        "Off"
+                    },
+            )
+        }
+        if (heartRateAlertSettings.highEnabled) {
+            item {
+                HeartRateAlertSlider(
+                    label = "High HR",
+                    valueLabel = "${heartRateAlertSettings.highBpm} bpm",
+                    valueBpm = heartRateAlertSettings.highBpm,
+                    options = heartRateAlertHighBpmOptions,
+                    onValueChanged = viewModel::setHeartRateAlertHighBpm,
+                )
+            }
+        }
+        item {
+            SettingsToggleChip(
+                checked = heartRateAlertSettings.lowEnabled,
+                onCheckedChanged = viewModel::setHeartRateAlertLowEnabled,
+                label = "HR low alert",
+                secondaryLabel =
+                    if (heartRateAlertSettings.lowEnabled) {
+                        "Beep under ${heartRateAlertSettings.lowBpm} bpm"
+                    } else {
+                        "Off"
+                    },
+            )
+        }
+        if (heartRateAlertSettings.lowEnabled) {
+            item {
+                HeartRateAlertSlider(
+                    label = "Low HR",
+                    valueLabel = "${heartRateAlertSettings.lowBpm} bpm",
+                    valueBpm = heartRateAlertSettings.lowBpm,
+                    options = heartRateAlertLowBpmOptions,
+                    onValueChanged = viewModel::setHeartRateAlertLowBpm,
                 )
             }
         }
@@ -142,6 +193,35 @@ private fun ProgressVibrationTimeSlider(
                     .coerceIn(recordingProgressVibrationTimeMinutesOptions.indices)
             selectedIndex = nextIndex
             onTimeMinutesChanged(recordingProgressVibrationTimeMinutesOptions[nextIndex])
+        },
+    )
+}
+
+@Composable
+private fun HeartRateAlertSlider(
+    label: String,
+    valueLabel: String,
+    valueBpm: Int,
+    options: List<Int>,
+    onValueChanged: (Int) -> Unit,
+) {
+    var selectedIndex by remember(valueBpm) {
+        mutableStateOf(options.indexOf(valueBpm).coerceAtLeast(0))
+    }
+
+    ProgressVibrationSlider(
+        label = label,
+        valueLabel = valueLabel,
+        value = selectedIndex.toFloat(),
+        valueRange = 0f..options.lastIndex.toFloat(),
+        steps = (options.size - 2).coerceAtLeast(0),
+        onValueChange = { rawValue ->
+            val nextIndex =
+                rawValue
+                    .roundToInt()
+                    .coerceIn(options.indices)
+            selectedIndex = nextIndex
+            onValueChanged(options[nextIndex])
         },
     )
 }
