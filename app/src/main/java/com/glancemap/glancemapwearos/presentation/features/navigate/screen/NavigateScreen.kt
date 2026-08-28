@@ -431,13 +431,8 @@ fun NavigateScreen(
             }
         }
 
-        if (isAmbient) {
-            AmbientScreen(
-                ambientTick = ambientTickMs,
-                timeFormat = navigateTimeFormat,
-            )
-            return
-        }
+        // NOTE: Ambient early-return removed so that raise-to-wake shows the last viewed
+        // screen (map or recording dashboard) instead of only the clock.
 
         var pendingPoiFocusTarget by remember { mutableStateOf<PoiNavigateTarget?>(null) }
 

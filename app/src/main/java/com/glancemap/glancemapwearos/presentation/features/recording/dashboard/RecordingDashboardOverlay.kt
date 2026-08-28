@@ -1,5 +1,6 @@
 package com.glancemap.glancemapwearos.presentation.features.recording.dashboard
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -92,6 +93,18 @@ internal fun BoxScope.RecordingDashboardOverlay(
     }
     LaunchedEffect(expanded) {
         onExpandedChange(expanded)
+    }
+    // Bottom hardware button (KEYCODE_BACK on Samsung) toggles the fullscreen recording
+    // dashboard: expand it when collapsed. When already expanded, the fullscreen page shell's
+    // own BackHandler (composed after this one, and this one disabled) collapses it to the map.
+    BackHandler(enabled = state.active && !expanded && !suppressed && !showCompactControls) {
+        expanded = true
+        showCompactControls = false
+        showStopPrompt = false
+        DebugTelemetry.log(
+            "TraceRecording",
+            "event=back_key_expand active=${state.active} expanded_before=false source=bottom_button",
+        )
     }
     LaunchedEffect(actionPromptRequestToken) {
         val shouldHandle =

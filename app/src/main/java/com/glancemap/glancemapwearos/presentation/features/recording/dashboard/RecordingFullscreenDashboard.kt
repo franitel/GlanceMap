@@ -62,7 +62,7 @@ internal fun ExpandedRecordingDashboard(
             Column(
                 modifier = Modifier.fillMaxWidth(contentWidthFraction),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
             ) {
                 Box(modifier = Modifier.height(statusRowHeight))
                 RecordingDashboardMetricTile(
@@ -73,7 +73,7 @@ internal fun ExpandedRecordingDashboard(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     RecordingDashboardMetricTile(
                         metric = formattedRecordingMetric(slots[1], snapshot, isMetric),

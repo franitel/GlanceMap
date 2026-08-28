@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -44,7 +45,6 @@ import com.glancemap.glancemapwearos.presentation.features.download.DownloadSett
 import com.glancemap.glancemapwearos.presentation.features.gpx.GpxScreen
 import com.glancemap.glancemapwearos.presentation.features.home.MainScreen
 import com.glancemap.glancemapwearos.presentation.features.maps.MapsScreen
-import com.glancemap.glancemapwearos.presentation.features.navigate.AmbientScreen
 import com.glancemap.glancemapwearos.presentation.features.navigate.NavigateScreen
 import com.glancemap.glancemapwearos.presentation.features.navigate.UI_RECORDING_START_REACQUIRE_SOURCE
 import com.glancemap.glancemapwearos.presentation.features.poi.PoiScreen
@@ -93,6 +93,17 @@ class MainActivity : ComponentActivity() {
 
     @Volatile
     private var activeRoute: String? = null
+
+    // Bottom hardware button toggles the recording dashboard (map <-> fullscreen recording).
+    // On Samsung the bottom physical button emits KEYCODE_BACK. When the recording dashboard
+    // is expanded, its own Compose BackHandler already collapses it to the map, so this only
+    // needs to expand when the dashboard is collapsed.
+    private val recordingBottomKeyExpandToken = mutableLongStateOf(0L)
+    @Volatile
+    private var bottomKeyToggleRecordingActive = false
+    @Volatile
+    private var bottomKeyToggleOnNavigateScreen = true
+
     private val thermalTelemetry =
         ThermalTelemetryController(this) {
             "route=${activeRoute ?: "unknown"} ambient=${ambientState.isAmbient} " +
@@ -181,8 +192,6 @@ class MainActivity : ComponentActivity() {
             val isAmbient = ambientState.isAmbient
             val ambientTickMs = ambientState.ambientTickMs
             val isDeviceInteractive = ambientState.isDeviceInteractive
-            val burnInProtectionRequired = ambientState.burnInProtectionRequired
-            val deviceHasLowBitAmbient = ambientState.deviceHasLowBitAmbient
             val activityLocationScreenState =
                 remember(isAmbient, isDeviceInteractive) {
                     resolveLocationScreenState(
@@ -272,6 +281,10 @@ class MainActivity : ComponentActivity() {
                         suppressNavigateTime = false
                     }
                 }
+                LaunchedEffect(isNavigateScreen, traceRecordingState.active) {
+                    bottomKeyToggleOnNavigateScreen = isNavigateScreen
+                    bottomKeyToggleRecordingActive = traceRecordingState.active
+                }
                 LaunchedEffect(
                     activityOwnsRuntime,
                     traceRecordingState.active,
@@ -352,15 +365,16 @@ class MainActivity : ComponentActivity() {
                     recordingActionPromptRequestToken += 1L
                 }
 
-                if (isAmbient) {
-                    AmbientScreen(
-                        ambientTick = ambientTickMs,
-                        timeFormat = navigateTimeFormat,
-                        burnInProtectionRequired = burnInProtectionRequired,
-                        deviceHasLowBitAmbient = deviceHasLowBitAmbient,
-                    )
-                    return@GlanceMapTheme
+                // Consume hardware bottom-button expand requests (from onKeyDown) into the same
+                // token the REC time-chip tap uses to expand the recording dashboard.
+                LaunchedEffect(recordingBottomKeyExpandToken.longValue) {
+                    if (recordingBottomKeyExpandToken.longValue > 0L) {
+                        onRecordingTimeTap()
+                    }
                 }
+
+                // NOTE: Ambient early-return removed so that raise-to-wake shows the last viewed
+                // screen (map or recording dashboard) instead of only the clock.
 
                 AppScaffold(
                     timeText = {},
@@ -1152,6 +1166,32 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        // The Samsung bottom button emits KEYCODE_BACK, which is handled by a Compose
+        // BackHandler inside the recording dashboard (BACK collapse/expand toggle) and by the
+        // OnBackPressedDispatcher, not by onKeyDown. Here we cover non-BACK hardware stem
+        // buttons found on some other watch models, expanding the dashboard when recording.
+        if ((keyCode == KeyEvent.KEYCODE_STEM_1 || keyCode == KeyEvent.KEYCODE_STEM_2) &&
+            shouldToggleRecordingWithStemKey()
+        ) {
+            recordingBottomKeyExpandToken.longValue += 1L
+            DebugTelemetry.log(
+                "TraceRecording",
+                "event=stem_key_toggle recordingActive=$bottomKeyToggleRecordingActive " +
+                    "onNavigate=$bottomKeyToggleOnNavigateScreen target=expand",
+            )
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    // Allow the hardware stem button to expand the recording dashboard only when a recording is
+    // active and we are on the map (navigate) screen and not in ambient.
+    private fun shouldToggleRecordingWithStemKey(): Boolean =
+        bottomKeyToggleRecordingActive &&
+            bottomKeyToggleOnNavigateScreen &&
+            !ambientState.isAmbient
 
     override fun onResume() {
         super.onResume()

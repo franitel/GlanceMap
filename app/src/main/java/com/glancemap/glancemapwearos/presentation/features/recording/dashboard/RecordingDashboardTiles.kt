@@ -31,9 +31,9 @@ import com.glancemap.glancemapwearos.presentation.ui.WearScreenSize
 
 internal fun recordingDashboardMetricTileHeight(screenSize: WearScreenSize): Dp =
     when (screenSize) {
-        WearScreenSize.LARGE -> 54.dp
-        WearScreenSize.MEDIUM -> 50.dp
-        WearScreenSize.SMALL -> 46.dp
+        WearScreenSize.LARGE -> 64.dp
+        WearScreenSize.MEDIUM -> 60.dp
+        WearScreenSize.SMALL -> 54.dp
     }
 
 @Composable
@@ -63,8 +63,8 @@ internal fun RecordingDashboardMetricTile(
             Text(
                 text = metric.label,
                 color = Color.White.copy(alpha = 0.62f),
-                fontSize = 12.sp,
-                lineHeight = 12.sp,
+                fontSize = 13.sp,
+                lineHeight = 13.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -75,7 +75,7 @@ internal fun RecordingDashboardMetricTile(
                     imageVector = Icons.Default.Bluetooth,
                     contentDescription = "Bluetooth",
                     tint = Color.White.copy(alpha = 0.72f),
-                    modifier = Modifier.size(10.dp),
+                    modifier = Modifier.size(12.dp),
                 )
             }
         }
@@ -87,8 +87,8 @@ internal fun RecordingDashboardMetricTile(
                 text = metric.value,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                lineHeight = 18.sp,
+                fontSize = 22.sp,
+                lineHeight = 22.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -97,8 +97,8 @@ internal fun RecordingDashboardMetricTile(
                 Text(
                     text = unit,
                     color = Color.White.copy(alpha = 0.70f),
-                    fontSize = 12.sp,
-                    lineHeight = 13.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 14.sp,
                     maxLines = 1,
                 )
             }
